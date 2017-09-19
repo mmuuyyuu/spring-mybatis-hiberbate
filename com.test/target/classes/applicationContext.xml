@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-4.2.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.2.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd
+		 
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+		">
+<!-- http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd -->
+
+<!-- http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.2.xsd -->
+<!-- 增加类@org.springframework.transaction.annotation.Transactional注释 -->
+	<context:component-scan base-package="com.dao,com.service"></context:component-scan>
+	
+	<context:property-placeholder location="classpath:db.properties" />
+	
+	
+		<!-- oracle  start -->
+	<bean id="oracledataSource"  class="com.atomikos.jdbc.AtomikosDataSourceBean" init-method="init" destroy-method="close">
+		
+		<!-- value只要两个数据源不同就行，随便取名 -->
+		<property name="uniqueResourceName" value="oracleDB" />
+		<property name="xaDataSourceClassName" value="com.alibaba.druid.pool.xa.DruidXADataSource" />
+		<property name="xaProperties">
+			<props>
+			    <prop key="driverClassName">${oracledriver}</prop>
+				<prop key="url">${oracleurl}</prop>
+				<prop key="username">${oracleusername}</prop>
+				<prop key="password">${oraclepassword}</prop>
+			</props>
+		</property>
+		<property name="poolSize" value="2" />  
+	    <property name="minPoolSize" value="1" />  
+	    <property name="maxPoolSize" value="5" />  
+	    <property name="testQuery" value="select 1 from dual" /> 
+	</bean>
+	
+	<bean id="sessionFactory" class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<property name="dataSource" ref="oracledataSource"></property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">org.hibernate.dialect.OracleDialect</prop>
+			    <prop key="current_session_context_class">org.springframework.orm.hibernate4.SpringSessionContext</prop>
+			   <!--  <prop key="hibernate.connection.autocommit">true</prop> -->
+				<prop key="hibernate.show_sql">true</prop>
+			</props>
+		</property>
+		<property name="packagesToScan" value="com.model"></property>
+	</bean>
+	
+	
+	<!-- oracle END -->
+	<!-- mySQL -->
+	
+	<bean id="mysqldataSource" class="com.atomikos.jdbc.AtomikosDataSourceBean" init-method="init" destroy-method="close">
+		
+		<property name="uniqueResourceName" value="mysqlDB" />
+		<property name="xaDataSourceClassName" value="com.alibaba.druid.pool.xa.DruidXADataSource" />
+		<property name="xaProperties">
+			<props>
+				<prop key="url">${mysqlurl}</prop>
+				<prop key="username">${mysqlusername}</prop>
+				<prop key="password">${mysqlpassword}</prop>
+			</props>
+		</property>
+		<property name="poolSize" value="2" />  
+	    <property name="minPoolSize" value="1" />  
+	    <property name="maxPoolSize" value="5" />  
+	    <property name="testQuery" value="select 1 from dual" /> 
+	</bean> 
+	
+	
+		<bean id="mysqlSessionFactory" class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<property name="dataSource" ref="mysqldataSource" />
+		<property name="packagesToScan" value="com.mysqlmodel" />
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQL5InnoDBDialect</prop>
+				<prop key="current_session_context_class">org.springframework.orm.hibernate4.SpringSessionContext</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.autoReconnect">true</prop>
+			</props>
+		</property>
+	</bean> 
+	
+	
+	<!-- MySQL end -->
+	
+	
+	<!-- mybatis 数据源  mysql start-->
+	
+		<bean id="mybatisdataSource" class="com.atomikos.jdbc.AtomikosDataSourceBean"
+		init-method="init" destroy-method="close">
+		<!-- value只要两个数据源不同就行，随便取名 -->
+		<property name="uniqueResourceName" value="mybatisDB" />
+		<property name="xaDataSourceClassName" value="com.alibaba.druid.pool.xa.DruidXADataSource" />
+		<property name="xaProperties">
+			<props>
+					<prop key="url">${mysqlurl}</prop>
+				<prop key="username">${mysqlusername}</prop>
+				<prop key="password">${mysqlpassword}</prop>
+			</props>
+		</property>
+		<property name="poolSize" value="2" />  
+	    <property name="minPoolSize" value="1" />  
+	    <property name="maxPoolSize" value="5" />  
+	</bean>
+	
+	<!-- 工厂 -->
+	<bean id="mybatisMysqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="mybatisdataSource" />
+	
+		<property name="mapperLocations" value="classpath*:com/mybatisdao/*.xml" />
+		<property name="plugins">
+			<list>
+				<bean class="com.github.pagehelper.PageHelper">
+					<property name="properties">
+						<value>
+							<!-- 4.0.0以后版本可以不设置该参数 -->
+							dialect=mysql
+							<!-- 3.3.0版本可用 - 分页参数合理化，默认false禁用 -->
+							<!-- 启用合理化时，如果pageNum<1会查询第一页，如果pageNum>pages会查询最后一页 -->
+							<!-- 禁用合理化时，如果pageNum<1或pageNum>pages会返回空数据 -->
+							reasonable=true
+							<!-- 该参数默认为false -->
+							<!-- 设置为true时，会将RowBounds第一个参数offset当成pageNum页码使用 -->
+							<!-- 和startPage中的pageNum效果一样 -->
+							offsetAsPageNum=true
+							<!-- 该参数默认为false -->
+							<!-- 设置为true时，使用RowBounds分页会进行count查询 -->
+							rowBoundsWithCount=true
+							<!-- 设置为true时，如果pageSize=0或者RowBounds.limit = 0就会查询出全部的结果 -->
+							<!-- （相当于没有执行分页查询，但是返回结果仍然是Page类型） -->
+							pageSizeZero=true
+							<!-- 3.3.0版本可用 - 分页参数合理化，默认false禁用 -->
+							<!-- 启用合理化时，如果pageNum<1会查询第一页，如果pageNum>pages会查询最后一页 -->
+							<!-- 禁用合理化时，如果pageNum<1或pageNum>pages会返回空数据 -->
+							reasonable=false
+						</value>
+					</property>
+				</bean>
+			</list>
+		</property>
+	</bean>
+	
+	<!--  -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.mybatisdao.**" />
+		<property name="sqlSessionFactoryBeanName" value="mybatisMysqlSessionFactory" />
+	</bean>
+	<!--  -->
+	<!--  mybatis 数据源  mysql end -->
+	
+  
+	
+	    <!-- 事务管理器 -->
+	<bean id="transactionManager" class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"></property>
+	</bean>
+
+
+	<!-- 开启通过注解@Transactional管理事务 -->
+	<tx:annotation-driven transaction-manager="transactionManager"  proxy-target-class="true" />
+
+	<!-- 配置事务传播特性 -->
+	<tx:advice id="transactionAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="save*" propagation="REQUIRED" rollback-for="Exception" />
+			<tx:method name="add*" propagation="REQUIRED" rollback-for="Exception" />
+			<tx:method name="freeze*" propagation="REQUIRED" rollback-for="Exception" />
+			<tx:method name="active*" propagation="REQUIRED" rollback-for="Exception" />
+			<tx:method name="delete*" propagation="REQUIRED" rollback-for="Exception" />
+			<tx:method name="update*" propagation="REQUIRED" rollback-for="Exception" />
+			<tx:method name="move*" propagation="REQUIRED" rollback-for="Exception" />
+			<tx:method name="insert*" propagation="REQUIRED" rollback-for="Exception" />
+			<tx:method name="modify*" propagation="REQUIRED" rollback-for="Exception" />
+			<tx:method name="*" propagation="SUPPORTS" read-only="true" />
+		</tx:attributes>
+	</tx:advice>
+
+	<!-- AOP 配置相关类的方法参与事务 -->
+	<aop:config>
+		<aop:advisor pointcut="execution(* com.service..*.*(..))" advice-ref="transactionAdvice" />
+	</aop:config>
+
+
+	<!-- 使用AspectJ方式配置AOP -->
+	<aop:aspectj-autoproxy proxy-target-class="true" />
+
+	<!-- 慢SQL记录 start -->
+ 	<bean id="stat-filter" class="com.alibaba.druid.filter.stat.StatFilter">
+		<property name="mergeSql" value="true" />
+		<property name="slowSqlMillis" value="1000" />
+		<property name="logSlowSql" value="true" />
+	</bean>
+
+
+
+</beans>
